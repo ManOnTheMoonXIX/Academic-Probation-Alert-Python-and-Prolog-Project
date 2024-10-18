@@ -70,7 +70,7 @@ calculate_gpa(StudentID, Semester, GPA) :-
 calculate_cumulative_gpa(StudentID, Year, CumulativeGPA) :-
     calculate_gpa(StudentID, 1, GPA1),
     calculate_gpa(StudentID, 2, GPA2),
-    (GPA2 = 0 -> CumulativeGPA is GPA1 ; CumulativeGPA is (GPA1 + GPA2) / 2).
+    (GPA2 = 0 -> CumulativeGPA = GPA1 ; CumulativeGPA is (GPA1 + GPA2) / 2).
 
 % Rule to check if a student is on academic probation
 on_academic_probation(StudentID, Year, GPA) :-
