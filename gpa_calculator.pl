@@ -77,8 +77,8 @@ calculate_cumulative_gpa(StudentID, CumulativeGPA) :-
     calculate_gpa(StudentID, 2, GPA2),
     semester_credits(StudentID, 1, Credits1),
     semester_credits(StudentID, 2, Credits2),
-    (Credits2 = 0 -> 
-        CumulativeGPA = GPA1 ; 
+    (Credits2 == 0 -> 
+        CumulativeGPA is GPA1 ; 
         CumulativeGPA is (GPA1 * Credits1 + GPA2 * Credits2) / (Credits1 + Credits2)
     ).
 
