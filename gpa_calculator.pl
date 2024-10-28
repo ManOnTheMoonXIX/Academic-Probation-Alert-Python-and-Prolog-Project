@@ -45,46 +45,36 @@ module_details(7890123, 'COM1024', 2023, 1, 85).
 module_details(8901234, 'MAT1043', 2023, 1, 90).
 module_details(8901234, 'STA2020', 2024, 2, 80).
 
-% Facts to store GPA and total credits for each semester
-semester_gpa(StudentID, Semester, GPA) :- 
-    calculate_gpa(StudentID, Semester, GPA).
-
+% Ascertain the total credit for the modules taken by the student for each semester
 semester_credits(StudentID, Semester, Credits) :- 
     findall(
-        Credits,
+        Credit,
         (
-            module_details(StudentID, ModuleID, Year, Semester, _),
-            module_data(ModuleID, _, Credits)
+            module_details(StudentID, ModuleID, _, Semester, _),
+            module_data(ModuleID, _, Credit)
         ),
         CreditsList
     ),
     sum_list(CreditsList, Credits).
 
-% GPA calculation rules
+% Calculate GPA for a given student and semester
 calculate_gpa(StudentID, Semester, GPA) :-
     findall(
         GradePoints * Credits,
         (
-            module_details(StudentID, ModuleID, Year, Semester, GradePoints),
+            module_details(StudentID, ModuleID, _, Semester, GradePoints),
             module_data(ModuleID, _, Credits)
         ),
         GradePointsList
     ),
     sum_list(GradePointsList, TotalGradePoints),
-    findall(
-        Credits,
-        (
-            module_details(StudentID, ModuleID, Year, Semester, _),
-            module_data(ModuleID, _, Credits)
-        ),
-        CreditsList
-    ),
-    sum_list(CreditsList, TotalCredits),
+    semester_credits(StudentID, Semester, TotalCredits),
     (TotalCredits > 0 -> GPA is TotalGradePoints / TotalCredits ; GPA is 0).
 
+% Calculate cumulative GPA for a student
 calculate_cumulative_gpa(StudentID, CumulativeGPA) :-
-    semester_gpa(StudentID, 1, GPA1),
-    semester_gpa(StudentID, 2, GPA2),
+    calculate_gpa(StudentID, 1, GPA1),
+    calculate_gpa(StudentID, 2, GPA2),
     semester_credits(StudentID, 1, Credits1),
     semester_credits(StudentID, 2, Credits2),
     (Credits2 = 0 -> 
@@ -92,14 +82,13 @@ calculate_cumulative_gpa(StudentID, CumulativeGPA) :-
         CumulativeGPA is (GPA1 * Credits1 + GPA2 * Credits2) / (Credits1 + Credits2)
     ).
 
-% Rule to check if a student is on academic probation
+% Check if a student is on academic probation
 on_academic_probation(StudentID) :-
     calculate_cumulative_gpa(StudentID, CumulativeGPA),
     default_gpa(DefaultGPA),
     CumulativeGPA =< DefaultGPA.
 
-% Rule to update the default GPA
+% Update the default GPA
 update_default_gpa(NewGPA) :-
     retract(default_gpa(_)),
     assert(default_gpa(NewGPA)).
-
