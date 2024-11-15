@@ -105,7 +105,7 @@ calculate_cumulative_gpa(StudentID, Academic_Year, CumulativeGPA) :-
     semester_credits(StudentID, Academic_Year, 2, Credits2), % Credits for second semester.
     (Credits2 == 0 -> 
         CumulativeGPA is GPA1 ; % If no credits in second semester, use first semester GPA.
-        CumulativeGPA is (GPA1 * Credits1 + GPA2 * Credits2) / (Credits1 + Credits2) % Weighted average of GPAs.
+        CumulativeGPA is ((GPA1 * Credits1) + (GPA2 * Credits2)) / (Credits1 + Credits2) % Weighted average of GPAs.
     ).
 
 % Check if a student is on academic probation
