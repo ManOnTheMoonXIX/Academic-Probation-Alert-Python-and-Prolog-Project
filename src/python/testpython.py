@@ -1,10 +1,22 @@
 from pyswip import Prolog
+import os
 import smtplib
 from email.mime.text import MIMEText
 
+# Create the logs and data directories if they do not exist
+if not os.path.exists("../../logs"):
+    os.makedirs("../../logs")  # Create a logs directory
+if not os.path.exists("../../data"):
+    os.makedirs("../../data")  # Create a data directory
+if not os.path.exists("../../reports"):
+    os.makedirs("../../reports")  # Create a reports directory
+if not os.path.exists("../../config"):
+    os.makedirs("../../config")  # Create a config directory
+
 # Initialize the Prolog engine
 prolog = Prolog()
-prolog.consult("gpa_calculator.pl")
+prolog.consult("../prolog/gpa_calculator.pl")  
+print("Current working directory:", os.getcwd())
 
 def query_prolog(query_str):
     """Helper function to query Prolog safely."""
@@ -31,11 +43,12 @@ def send_email_alert(student_id, name, email, programme):
     body = f"Dear {name},\n\nYour cumulative GPA has fallen below the threshold. Please contact your advisor.\n\nProgramme: {programme}"
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = "admin@university.com"
-    msg["To"] = email
+    msg["From"] = "ec6c909258d81d"
+    msg["To"] = "marvishaughtonjnr@gmail.com"
+    
 
-    with smtplib.SMTP("smtp.mailtrap.io", 2525) as server:
-        server.login("your_username", "your_password")
+    with smtplib.SMTP("sandbox.smtp.mailtrap.io", 2525) as server:
+        server.login("ec6c909258d81d", "0326223a105cbc")
         server.sendmail("admin@university.com", email, msg.as_string())
 
 def generate_reports(year):
