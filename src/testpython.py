@@ -97,9 +97,7 @@ def send_email_alert(student_id, name, email, programme, school="School of Engin
     # Add recipients
     recipients = [
         email,  # Student email
-        "advisor@university.com",
-        "director@university.com",
-        "admin@university.com"
+        "brianataylor4004@gmail.com"
     ]
     msg["To"] = ", ".join(recipients)
 
