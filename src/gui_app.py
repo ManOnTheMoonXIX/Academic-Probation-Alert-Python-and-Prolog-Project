@@ -174,6 +174,13 @@ class AcademicProbationApp(ctk.CTk):
         )
         send_alerts_button.pack(pady=10)
 
+        # Button to add a new student
+        add_student_button = ctk.CTkButton(
+            self, text="Add New Student",
+            command=self.show_add_student_screen
+        )
+        add_student_button.pack(pady=10)
+
         # Log out button
         back_button = ctk.CTkButton(self, text="Log Out", command=self.show_home_screen)
         back_button.pack(pady=20)
@@ -382,6 +389,82 @@ class AcademicProbationApp(ctk.CTk):
         except Exception as e:
             print(f"Error sending alerts: {e}")
             ctk.CTkLabel(self, text="Error sending alerts.", text_color="red").pack(pady=10)
+
+    def show_add_student_screen(self):
+        """Display the screen to add a new student."""
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        title_label = ctk.CTkLabel(self, text="Add New Student", font=("Arial", 24))
+        title_label.pack(pady=20)
+
+        # Input fields for student details
+        student_id_label = ctk.CTkLabel(self, text="Student ID:")
+        student_id_label.pack(pady=5)
+        student_id_entry = ctk.CTkEntry(self)
+        student_id_entry.pack(pady=5)
+
+        name_label = ctk.CTkLabel(self, text="Name:")
+        name_label.pack(pady=5)
+        name_entry = ctk.CTkEntry(self)
+        name_entry.pack(pady=5)
+
+        email_label = ctk.CTkLabel(self, text="Email:")
+        email_label.pack(pady=5)
+        email_entry = ctk.CTkEntry(self)
+        email_entry.pack(pady=5)
+
+        school_label = ctk.CTkLabel(self, text="School:")
+        school_label.pack(pady=5)
+        school_entry = ctk.CTkEntry(self)
+        school_entry.pack(pady=5)
+
+        programme_label = ctk.CTkLabel(self, text="Programme:")
+        programme_label.pack(pady=5)
+        programme_entry = ctk.CTkEntry(self)
+        programme_entry.pack(pady=5)
+
+        # Submit button
+        submit_button = ctk.CTkButton(
+            self, text="Add Student",
+            command=lambda: self.add_student_to_db(
+                student_id_entry.get(),
+                name_entry.get(),
+                email_entry.get(),
+                school_entry.get(),
+                programme_entry.get()
+            )
+        )
+        submit_button.pack(pady=20)
+
+        # Back button
+        back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
+        back_button.pack(pady=10)
+
+        
+    def add_student_to_db(self, student_id, name, email, school, programme):
+        """Add a new student to the database."""
+        try:
+            # Validate input
+            if not (student_id and name and email and school and programme):
+                ctk.CTkLabel(self, text="All fields are required.", text_color="red").pack(pady=10)
+                return
+
+            # Insert the student into the database
+            query = """
+            INSERT INTO students (student_id, name, email, school, programme)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (student_id, name, email, school, programme))
+            db.commit()
+            ctk.CTkLabel(self, text="Student added successfully!", text_color="green").pack(pady=10)
+
+            # Return to admin dashboard
+            self.show_admin_dashboard()
+        except Exception as e:
+            print(f"Error adding student: {e}")
+            ctk.CTkLabel(self, text="Error adding student. Please try again.", text_color="red").pack(pady=10)
+            
 
         
     def show_student_dashboard(self, student_id):
