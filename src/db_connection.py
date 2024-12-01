@@ -1,4 +1,5 @@
 import mysql.connector
+import bcrypt
 
 # Establish the database connection
 db = mysql.connector.connect(
@@ -10,14 +11,76 @@ db = mysql.connector.connect(
 
 cursor = db.cursor()
 
+
+def authenticate_user(username, password):
+    """
+    Authenticate a user (student or admin) by username and password.
+
+    Args:
+        username (str): Username provided during login.
+        password (str): Plaintext password provided during login.
+
+    Returns:
+        dict: A dictionary containing user details if authentication is successful, None otherwise.
+    """
+    try:
+        # Fetch user details from the database
+        query = "SELECT user_id, password_hash, role, student_id FROM users WHERE username = %s"
+        cursor.execute(query, (username,))
+        result = cursor.fetchone()
+
+        if result:
+            user_id, password_hash, role, student_id = result
+
+            # Verify the password
+            if bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+                return {
+                    "user_id": user_id,
+                    "role": role,
+                    "student_id": student_id  # Will be None for admins
+                }
+
+        # Authentication failed
+        return None
+    except Exception as e:
+        print(f"Error during authentication: {e}")
+        return None
+
+
+def create_user(username, password, role, student_id=None):
+    """
+    Create a new user in the database.
+
+    Args:
+        username (str): Username for the user.
+        password (str): Plaintext password.
+        role (str): Role of the user ('admin' or 'student').
+        student_id (int, optional): Student ID for student users.
+    """
+    try:
+        # Hash the password
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+        # Insert the user into the database
+        query = """
+        INSERT INTO users (username, password_hash, role, student_id)
+        VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(query, (username, hashed_password.decode('utf-8'), role, student_id))
+        db.commit()
+        print(f"User {username} created successfully.")
+    except Exception as e:
+        print(f"Error creating user: {e}")
+
+
 # Fetch student data by student ID
 def get_student_data(student_id=None):
     """Fetch student data. If student_id is provided, fetch for a specific student."""
     if student_id:
-        query = "SELECT student_id, name, email, school, programme FROM students WHERE student_id = %s"
+        query = "SELECT student_id, name, email, school, programme, gpa FROM students WHERE student_id = %s"
         cursor.execute(query, (student_id,))
     else:
-        query = "SELECT student_id, name, email, school, programme FROM students"
+        query = "SELECT student_id, name, email, school, programme, gpa FROM students"
         cursor.execute(query)
     return cursor.fetchall()
 

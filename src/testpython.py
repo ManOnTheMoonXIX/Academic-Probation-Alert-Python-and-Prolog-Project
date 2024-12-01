@@ -1,4 +1,5 @@
 from pyswip import Prolog
+from gui_app import AcademicProbationApp
 from db_connection import (
     get_student_data,
     get_module_data,
@@ -155,4 +156,10 @@ def main():
         close_connection()
 
 if __name__ == "__main__":
-    main()
+    app = AcademicProbationApp(
+        get_student_gpa=get_student_gpa,
+        get_cumulative_gpa=get_cumulative_gpa,
+        is_on_academic_probation=is_on_academic_probation,
+        populate_prolog_from_db=populate_prolog_from_db
+    )
+    app.mainloop()
