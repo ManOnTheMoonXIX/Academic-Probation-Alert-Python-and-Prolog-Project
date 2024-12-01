@@ -11,7 +11,7 @@ from db_connection import get_student_data, close_connection, cursor, db
 
 # Create the main app class
 class AcademicProbationApp(ctk.CTk):
-    def __init__(self, get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db, query_prolog):
+    def __init__(self, get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db, query_prolog, send_email_alert):
         super().__init__()
 
         # Store function references
@@ -20,6 +20,7 @@ class AcademicProbationApp(ctk.CTk):
         self.is_on_academic_probation = is_on_academic_probation
         self.populate_prolog_from_db = populate_prolog_from_db
         self.query_prolog = query_prolog 
+        self.send_email_alert = send_email_alert
 
         # Window settings
         self.title("Academic Probation System")
@@ -353,18 +354,35 @@ class AcademicProbationApp(ctk.CTk):
             ctk.CTkLabel(self, text="Error generating report.", text_color="red").pack(pady=10)
 
     def send_alerts(self):
-        """Send alerts to students whose GPA is below the threshold."""
+        """Send alerts to students whose cumulative GPA is below the threshold."""
         try:
-            query = "SELECT student_id, name, email, gpa FROM students WHERE gpa <= 2.0"
-            cursor.execute(query)
-            results = cursor.fetchall()
+            # Fetch all student data
+            self.populate_prolog_from_db()  # Ensure Prolog facts are updated
+            students = self.query_prolog("student_data(StudentID, Name, Email, _, Programme)")
 
-            for student in results:
-                send_email_alert(student[0], student[1], student[2], student[3])
+            if not students:
+                ctk.CTkLabel(self, text="No students found.", text_color="red").pack(pady=10)
+                return
+
+            for student in students:
+                student_id = student["StudentID"]
+                name = student["Name"]
+                email = student["Email"]
+                programme = student["Programme"]
+
+                # Calculate cumulative GPA dynamically
+                cumulative_gpa = self.get_cumulative_gpa(student_id, "2023/2024")
+
+                # Check if the student is on academic probation
+                if cumulative_gpa <= 2.0:  # Adjust the threshold as needed
+                    self.send_email_alert(student_id, name, email, programme)
+                    print(f"Alert sent for {name} (ID: {student_id})")
+
             ctk.CTkLabel(self, text="Alerts sent successfully!", text_color="green").pack(pady=10)
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error sending alerts: {e}")
             ctk.CTkLabel(self, text="Error sending alerts.", text_color="red").pack(pady=10)
+
         
     def show_student_dashboard(self, student_id):
         """Display the Student Dashboard."""
@@ -415,9 +433,9 @@ class AcademicProbationApp(ctk.CTk):
 
     def check_student_probation(self, student_id):
         """Check if the student is on academic probation."""
-        populate_prolog_from_db()  # Ensure the Prolog facts are up-to-date
+        self.populate_prolog_from_db()  # Ensure the Prolog facts are up-to-date
 
-        if is_on_academic_probation(student_id):
+        if self.is_on_academic_probation(student_id):
             ctk.CTkLabel(self, text="You are on academic probation!", text_color="red").pack(pady=20)
         else:
             ctk.CTkLabel(self, text="You are not on academic probation.", text_color="green").pack(pady=20)
@@ -427,13 +445,14 @@ class AcademicProbationApp(ctk.CTk):
 
 # Run the application
 if __name__ == "__main__":
-    from testpython import get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db, query_prolog
+    from testpython import get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db, query_prolog, send_email_alert
 
     app = AcademicProbationApp(
         get_student_gpa=get_student_gpa,
         get_cumulative_gpa=get_cumulative_gpa,
         is_on_academic_probation=is_on_academic_probation,
         populate_prolog_from_db=populate_prolog_from_db,
-        query_prolog=query_prolog
+        query_prolog=query_prolog,
+        send_email_alert=send_email_alert
  )
     app.mainloop()

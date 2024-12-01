@@ -81,7 +81,7 @@ def populate_prolog_from_db():
             prolog.assertz(f"module_details({student_id}, '{module_id}', '2023/2024', 2, '{letter_grade}')")
 
 
-def send_email_alert(student_id, name, email, programme, school="School of Engineering"):
+def send_email_alert(student_id, name, email, programme, school):
     """Send academic probation alert emails to multiple stakeholders."""
     subject = "Academic Probation Alert"
     body = (
@@ -93,24 +93,23 @@ def send_email_alert(student_id, name, email, programme, school="School of Engin
     )
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = "admin@university.com"
+    msg["From"] = "enchantoalder@gmail.com"
 
     # Add recipients
     recipients = [
         email,  # Student email
-        "advisor@university.com",
-        "director@university.com",
-        "admin@university.com"
+        "darynnbrown@gmail.com",
+        "enchantoalder@gmail.com"
     ]
     msg["To"] = ", ".join(recipients)
 
     try:
-        with smtplib.SMTP("smtp.mailtrap.io", 2525, timeout=30) as server:  # Adjust SMTP settings as needed
-            server.login("your_username", "your_password")  # Replace with real credentials
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:  # Adjust SMTP settings as needed
+            server.login("enchantoalder@gmail.com", "rpjg lslg nawi hlze")  # Replace with real credentials
             server.sendmail(msg["From"], recipients, msg.as_string())
         print(f"Email alert sent to {email} and other stakeholders.")
     except Exception as e:
-        print(f"Error sending email alert for {name} (ID: {student_id}): {e}")
+        print(f"Error sending email alert for {name} (ID: {student_id}): {e}")
 
 def generate_reports(year):
     """Generate GPA reports and send alerts for students on academic probation."""
@@ -162,5 +161,6 @@ if __name__ == "__main__":
         is_on_academic_probation=is_on_academic_probation,
         populate_prolog_from_db=populate_prolog_from_db,
         query_prolog=query_prolog,
+        send_email_alert=send_email_alert,
     )
     app.mainloop()
