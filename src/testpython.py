@@ -106,7 +106,7 @@ def send_email_alert(student_id, name, email, programme, school="School of Engin
 
     try:
         with smtplib.SMTP("smtp.gmail.com", 2525, timeout=30) as server:  # Adjust SMTP settings as needed
-            server.login("enchantoalder@gmail.com", "vzkgexprglhisjkx")  # Replace with real credentials
+            server.login("enchantoalder@gmail.com", "rpjg lslg nawi hlze")  # Replace with real credentials
             server.sendmail(msg["From"], recipients, msg.as_string())
         print(f"Email alert sent to {email} and other stakeholders.")
     except Exception as e:
