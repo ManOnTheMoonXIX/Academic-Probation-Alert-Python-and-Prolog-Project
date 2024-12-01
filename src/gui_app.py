@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from tkinter import ttk
 
 # Initialize customtkinter
 ctk.set_appearance_mode("System")  # Light or Dark mode
@@ -204,6 +205,25 @@ class AcademicProbationApp(ctk.CTk):
             title_label = ctk.CTkLabel(self, text=f"GPA Reports for {year}", font=("Arial", 24))
             title_label.pack(pady=20)
 
+            # Create a frame for the table and scrollbar
+            table_frame = ctk.CTkFrame(self)
+            table_frame.pack(pady=10, padx=10, fill="both", expand=True)
+
+            # Define table columns
+            columns = ("Student ID", "Name", "Email", "School", "Programme", "GPA Semester 1", "GPA Semester 2", "Cumulative GPA")
+            gpa_table = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+            # Set up column headings
+            for col in columns:
+                gpa_table.heading(col, text=col)
+                gpa_table.column(col, anchor="center", width=150)
+
+            # Add a vertical scrollbar
+            scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=gpa_table.yview)
+            gpa_table.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side="right", fill="y")
+            gpa_table.pack(fill="both", expand=True)
+
             # Iterate through each student and calculate GPA using Prolog
             for student in students:
                 student_id = student["StudentID"]
@@ -219,20 +239,11 @@ class AcademicProbationApp(ctk.CTk):
                 # Calculate cumulative GPA
                 cumulative_gpa = self.get_cumulative_gpa(student_id, year)
 
-                # Display student report in the GUI
-                report = (
-                    f"Student ID: {student_id}\n"
-                    f"Name: {name}\n"
-                    f"Email: {email}\n"
-                    f"School: {school}\n"
-                    f"Programme: {programme}\n"
-                    f"GPA Semester 1: {gpa_sem1:.2f}\n"
-                    f"GPA Semester 2: {gpa_sem2:.2f}\n"
-                    f"Cumulative GPA: {cumulative_gpa:.2f}\n"
-                    "------------------------"
-                )
-                report_label = ctk.CTkLabel(self, text=report, text_color="black", justify="left")
-                report_label.pack(anchor="w", padx=20, pady=10)
+                # Insert data into the table
+                gpa_table.insert("", "end", values=(
+                    student_id, name, email, school, programme,
+                    f"{gpa_sem1:.2f}", f"{gpa_sem2:.2f}", f"{cumulative_gpa:.2f}"
+                ))
 
             # Back button
             back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
@@ -240,7 +251,6 @@ class AcademicProbationApp(ctk.CTk):
         except Exception as e:
             print(f"Error: {e}")
             ctk.CTkLabel(self, text="Error generating GPA reports.", text_color="red").pack(pady=20)
-
 
 
     def update_default_gpa(self):
