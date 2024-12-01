@@ -25,7 +25,7 @@ class AcademicProbationApp(ctk.CTk):
 
         # Window settings
         self.title("Academic Probation System")
-        self.geometry("600x400")
+        self.geometry("1200x800")
 
         # Start with the home screen
         self.show_home_screen()
@@ -209,8 +209,30 @@ class AcademicProbationApp(ctk.CTk):
             table_frame = ctk.CTkFrame(self)
             table_frame.pack(pady=10, padx=10, fill="both", expand=True)
 
+            # Define custom styles for the Treeview
+            style = ttk.Style()
+            style.configure(
+                "Custom.Treeview",
+                background="blue",
+                foreground="white",
+                fieldbackground="blue",
+                font=("Arial", 14),  # Larger font
+                rowheight=30,  # Increase row height for better visibility
+            )
+            style.configure(
+                "Custom.Treeview.Heading",
+                font=("Arial Bold", 16),  # Larger, bold font for headings
+                background="darkblue",
+                foreground="white",
+            )
+            style.map(
+                "Custom.Treeview",
+                background=[("selected", "darkblue")],
+                foreground=[("selected", "white")],
+            )
+
             # Define table columns
-            columns = ("Student ID", "Name", "Email", "School", "Programme", "GPA Semester 1", "GPA Semester 2", "Cumulative GPA")
+            columns = ("Student ID", "Name", "Email", "School", "Programme", "GPA Semester 1", "GPA Semester 2", "Cumulative GPA", "Probation Status")
             gpa_table = ttk.Treeview(table_frame, columns=columns, show="headings")
 
             # Set up column headings
@@ -239,10 +261,12 @@ class AcademicProbationApp(ctk.CTk):
                 # Calculate cumulative GPA
                 cumulative_gpa = self.get_cumulative_gpa(student_id, year)
 
+                # Determine probation status
+                probation_status = "Yes" if self.is_on_academic_probation(student_id) else "No"
+
                 # Insert data into the table
                 gpa_table.insert("", "end", values=(
-                    student_id, name, email, school, programme,
-                    f"{gpa_sem1:.2f}", f"{gpa_sem2:.2f}", f"{cumulative_gpa:.2f}"
+                    student_id, name, email, school, programme, f"{gpa_sem1:.2f}", f"{gpa_sem2:.2f}", f"{cumulative_gpa:.2f}", probation_status
                 ))
 
             # Back button
@@ -375,7 +399,7 @@ class AcademicProbationApp(ctk.CTk):
         try:
             # Fetch all student data
             self.populate_prolog_from_db()  # Ensure Prolog facts are updated
-            students = self.query_prolog("student_data(StudentID, Name, Email, _, Programme)")
+            students = self.query_prolog("student_data(StudentID, Name, Email, School, Programme)")
 
             if not students:
                 ctk.CTkLabel(self, text="No students found.", text_color="red").pack(pady=10)
@@ -385,6 +409,7 @@ class AcademicProbationApp(ctk.CTk):
                 student_id = student["StudentID"]
                 name = student["Name"]
                 email = student["Email"]
+                school = student["School"]
                 programme = student["Programme"]
 
                 # Calculate cumulative GPA dynamically
@@ -392,7 +417,7 @@ class AcademicProbationApp(ctk.CTk):
 
                 # Check if the student is on academic probation
                 if cumulative_gpa <= 2.0:  # Adjust the threshold as needed
-                    self.send_email_alert(student_id, name, email, programme)
+                    self.send_email_alert(student_id, name, email, programme, school)
                     print(f"Alert sent for {name} (ID: {student_id})")
 
             ctk.CTkLabel(self, text="Alerts sent successfully!", text_color="green").pack(pady=10)
