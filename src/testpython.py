@@ -93,20 +93,20 @@ def send_email_alert(student_id, name, email, programme, school="School of Engin
     )
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = "admin@university.com"
+    msg["From"] = "enchantoalder@gmail.com"
 
     # Add recipients
     recipients = [
         email,  # Student email
         "advisor@university.com",
-        "director@university.com",
+        "director@university.com"
         "admin@university.com"
     ]
     msg["To"] = ", ".join(recipients)
 
     try:
-        with smtplib.SMTP("smtp.mailtrap.io", 2525, timeout=30) as server:  # Adjust SMTP settings as needed
-            server.login("your_username", "your_password")  # Replace with real credentials
+        with smtplib.SMTP("smtp.gmail.com", 2525, timeout=30) as server:  # Adjust SMTP settings as needed
+            server.login("enchantoalder@gmail.com", "vzkgexprglhisjkx")  # Replace with real credentials
             server.sendmail(msg["From"], recipients, msg.as_string())
         print(f"Email alert sent to {email} and other stakeholders.")
     except Exception as e:
@@ -160,7 +160,6 @@ if __name__ == "__main__":
         get_student_gpa=get_student_gpa,
         get_cumulative_gpa=get_cumulative_gpa,
         is_on_academic_probation=is_on_academic_probation,
-        populate_prolog_from_db=populate_prolog_from_db,
-        query_prolog=query_prolog,
+        populate_prolog_from_db=populate_prolog_from_db
     )
     app.mainloop()
