@@ -160,6 +160,7 @@ if __name__ == "__main__":
         get_student_gpa=get_student_gpa,
         get_cumulative_gpa=get_cumulative_gpa,
         is_on_academic_probation=is_on_academic_probation,
-        populate_prolog_from_db=populate_prolog_from_db
+        populate_prolog_from_db=populate_prolog_from_db,
+        query_prolog=query_prolog,
     )
     app.mainloop()

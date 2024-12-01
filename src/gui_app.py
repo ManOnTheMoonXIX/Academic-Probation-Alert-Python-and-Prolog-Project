@@ -11,7 +11,7 @@ from db_connection import get_student_data, close_connection, cursor, db
 
 # Create the main app class
 class AcademicProbationApp(ctk.CTk):
-    def __init__(self, get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db):
+    def __init__(self, get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db, query_prolog):
         super().__init__()
 
         # Store function references
@@ -19,6 +19,7 @@ class AcademicProbationApp(ctk.CTk):
         self.get_cumulative_gpa = get_cumulative_gpa
         self.is_on_academic_probation = is_on_academic_probation
         self.populate_prolog_from_db = populate_prolog_from_db
+        self.query_prolog = query_prolog 
 
         # Window settings
         self.title("Academic Probation System")
@@ -178,15 +179,60 @@ class AcademicProbationApp(ctk.CTk):
 
 
     def generate_gpa_reports(self, year):
-        """Generate GPA reports for all students."""
+        """Generate GPA reports using Prolog and display them in the GUI."""
         try:
-            self.populate_prolog_from_db()  # Use the instance variable to call the function
-            from testpython import generate_reports  # Ensure generate_reports is imported here
-            generate_reports(year)
-            ctk.CTkLabel(self, text="Reports generated successfully!", text_color="green").pack(pady=20)
+            self.populate_prolog_from_db()  # Populate Prolog facts dynamically
+            
+            # Fetch all students from Prolog
+            students = self.query_prolog("student_data(StudentID, Name, Email, School, Programme)")
+            if not students:
+                raise Exception("No students found in Prolog database.")
+            
+            # Clear the screen
+            for widget in self.winfo_children():
+                widget.destroy()
+
+            # Add title
+            title_label = ctk.CTkLabel(self, text=f"GPA Reports for {year}", font=("Arial", 24))
+            title_label.pack(pady=20)
+
+            # Iterate through each student and calculate GPA using Prolog
+            for student in students:
+                student_id = student["StudentID"]
+                name = student["Name"]
+                email = student["Email"]
+                school = student["School"]
+                programme = student["Programme"]
+
+                # Calculate semester GPAs
+                gpa_sem1 = self.get_student_gpa(student_id, 1)
+                gpa_sem2 = self.get_student_gpa(student_id, 2)
+
+                # Calculate cumulative GPA
+                cumulative_gpa = self.get_cumulative_gpa(student_id, year)
+
+                # Display student report in the GUI
+                report = (
+                    f"Student ID: {student_id}\n"
+                    f"Name: {name}\n"
+                    f"Email: {email}\n"
+                    f"School: {school}\n"
+                    f"Programme: {programme}\n"
+                    f"GPA Semester 1: {gpa_sem1:.2f}\n"
+                    f"GPA Semester 2: {gpa_sem2:.2f}\n"
+                    f"Cumulative GPA: {cumulative_gpa:.2f}\n"
+                    "------------------------"
+                )
+                report_label = ctk.CTkLabel(self, text=report, text_color="black", justify="left")
+                report_label.pack(anchor="w", padx=20, pady=10)
+
+            # Back button
+            back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
+            back_button.pack(pady=20)
         except Exception as e:
             print(f"Error: {e}")
-            ctk.CTkLabel(self, text="Error generating reports.", text_color="red").pack(pady=20)
+            ctk.CTkLabel(self, text="Error generating GPA reports.", text_color="red").pack(pady=20)
+
 
 
     def update_default_gpa(self):
@@ -214,7 +260,7 @@ class AcademicProbationApp(ctk.CTk):
     def submit_default_gpa(self, gpa):
         """Submit the new default GPA to Prolog."""
         try:
-            query_prolog(f"update_default_gpa({float(gpa)})")
+            self.query_prolog(f"update_default_gpa({float(gpa)})")
             ctk.CTkLabel(self, text="Default GPA updated successfully!", text_color="green").pack(pady=20)
         except Exception as e:
             print(f"Error: {e}")
@@ -285,7 +331,7 @@ class AcademicProbationApp(ctk.CTk):
         """Fetch and display the GPA report for the student."""
         try:
             query = """
-            SELECT student_id, name, email, school, programme, gpa
+            SELECT student_id, name, email, school, programme
             FROM students WHERE student_id = %s
             """
             cursor.execute(query, (student_id,))
@@ -298,7 +344,6 @@ class AcademicProbationApp(ctk.CTk):
                 Email: {result[2]}
                 School: {result[3]}
                 Programme: {result[4]}
-                GPA: {result[5]}
                 """
                 ctk.CTkLabel(self, text=report, text_color="black", wraplength=500).pack(pady=20)
             else:
@@ -382,12 +427,13 @@ class AcademicProbationApp(ctk.CTk):
 
 # Run the application
 if __name__ == "__main__":
-    from testpython import get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db
+    from testpython import get_student_gpa, get_cumulative_gpa, is_on_academic_probation, populate_prolog_from_db, query_prolog
 
     app = AcademicProbationApp(
         get_student_gpa=get_student_gpa,
         get_cumulative_gpa=get_cumulative_gpa,
         is_on_academic_probation=is_on_academic_probation,
-        populate_prolog_from_db=populate_prolog_from_db
-    )
+        populate_prolog_from_db=populate_prolog_from_db,
+        query_prolog=query_prolog
+ )
     app.mainloop()

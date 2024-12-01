@@ -77,10 +77,10 @@ def create_user(username, password, role, student_id=None):
 def get_student_data(student_id=None):
     """Fetch student data. If student_id is provided, fetch for a specific student."""
     if student_id:
-        query = "SELECT student_id, name, email, school, programme, gpa FROM students WHERE student_id = %s"
+        query = "SELECT student_id, name, email, school, programme FROM students WHERE student_id = %s"
         cursor.execute(query, (student_id,))
     else:
-        query = "SELECT student_id, name, email, school, programme, gpa FROM students"
+        query = "SELECT student_id, name, email, school, programme FROM students"
         cursor.execute(query)
     return cursor.fetchall()
 
