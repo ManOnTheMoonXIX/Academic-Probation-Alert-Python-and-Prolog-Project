@@ -60,12 +60,12 @@ class AcademicProbationApp(ctk.CTk):
         # Add student login fields
         username_label = ctk.CTkLabel(self, text="Student ID:")
         username_label.pack(pady=10)
-        username_entry = ctk.CTkEntry(self)
+        username_entry = ctk.CTkEntry(self, width=300)
         username_entry.pack(pady=10)
 
         password_label = ctk.CTkLabel(self, text="Password:")
         password_label.pack(pady=10)
-        password_entry = ctk.CTkEntry(self, show="*")
+        password_entry = ctk.CTkEntry(self, show="*", width=300)
         password_entry.pack(pady=10)
 
         # Add login button
@@ -89,12 +89,12 @@ class AcademicProbationApp(ctk.CTk):
         # Add admin login fields
         username_label = ctk.CTkLabel(self, text="Username:")
         username_label.pack(pady=10)
-        username_entry = ctk.CTkEntry(self)
+        username_entry = ctk.CTkEntry(self, width=300)
         username_entry.pack(pady=10)
 
         password_label = ctk.CTkLabel(self, text="Password:")
         password_label.pack(pady=10)
-        password_entry = ctk.CTkEntry(self, show="*")
+        password_entry = ctk.CTkEntry(self, show="*", width=300)
         password_entry.pack(pady=10)
 
         # Add login button
