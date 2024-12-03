@@ -38,6 +38,24 @@ class AcademicProbationApp(ctk.CTk):
         # Start with the home screen
         self.show_home_screen()
 
+    def create_user_for_new_student(self, student_id, email):
+        """Create a user for the new student."""
+        try:
+            # Hash the student ID for password
+            import bcrypt
+            hashed_password = bcrypt.hashpw(str(student_id).encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+            # Insert user into the database
+            query = """
+            INSERT INTO users (username, password_hash, role, student_id)
+            VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query, (email, hashed_password, 'student', student_id))
+            db.commit()
+            print(f"User created successfully for student {student_id}.")
+        except Exception as e:
+            print(f"Error creating user for student {student_id}: {e}")    
+
     def show_home_screen(self):
         """Display the home screen with Student and Admin login options."""
         # Clear existing widgets
@@ -172,13 +190,6 @@ class AcademicProbationApp(ctk.CTk):
         )
         update_gpa_button.pack(pady=10)
 
-        # Button to record/update GPA
-        record_gpa_button = ctk.CTkButton(
-            self, text="Record/Update GPA",
-            command=self.record_gpa
-        )
-        record_gpa_button.pack(pady=10)
-
         # Button to generate individual student report
         generate_student_report_button = ctk.CTkButton(
             self, text="Generate Student Report",
@@ -200,6 +211,13 @@ class AcademicProbationApp(ctk.CTk):
         )
         add_student_button.pack(pady=10)
 
+        # Add button to add a new module
+        add_module_button = ctk.CTkButton(
+            self, text="Add New Module",
+            command=self.show_add_module_screen
+        )
+        add_module_button.pack(pady=10)
+
         # Button to manage module details
         module_details_button = ctk.CTkButton(
             self, text="Module Details",
@@ -210,6 +228,71 @@ class AcademicProbationApp(ctk.CTk):
         # Log out button
         back_button = ctk.CTkButton(self, text="Log Out", command=self.show_home_screen)
         back_button.pack(pady=20)
+
+    def show_add_module_screen(self):
+        """Screen to add a new module."""
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        title_label = ctk.CTkLabel(self, text="Add New Module", font=("Arial", 24))
+        title_label.pack(pady=20)
+
+        # Input fields for module details
+        module_id_label = ctk.CTkLabel(self, text="Module ID:")
+        module_id_label.pack(pady=5)
+        module_id_entry = ctk.CTkEntry(self, width=300)
+        module_id_entry.pack(pady=5)
+
+        module_name_label = ctk.CTkLabel(self, text="Module Name:")
+        module_name_label.pack(pady=5)
+        module_name_entry = ctk.CTkEntry(self, width=300)
+        module_name_entry.pack(pady=5)
+
+        credits_label = ctk.CTkLabel(self, text="Credits:")
+        credits_label.pack(pady=5)
+        credits_entry = ctk.CTkEntry(self, width=300)
+        credits_entry.pack(pady=5)
+
+        # Submit button
+        submit_button = ctk.CTkButton(
+            self, text="Add Module",
+            command=lambda: self.add_module_to_db(
+                module_id_entry.get(),
+                module_name_entry.get(),
+                credits_entry.get()
+            )
+        )
+        submit_button.pack(pady=20)
+
+        # Back button
+        back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
+        back_button.pack(pady=10)
+        
+
+    def add_module_to_db(self, module_id, module_name, credits):
+        """Add a new module to the database."""
+        try:
+            # Validate input
+            if not (module_id and module_name and credits.isdigit()):
+                ctk.CTkLabel(self, text="All fields are required and credits must be a number.", text_color="red").pack(pady=10)
+                return
+
+            # Insert the module into the database
+            query = """
+            INSERT INTO modules (module_id, module_name, credits)
+            VALUES (%s, %s, %s)
+            """
+            cursor.execute(query, (module_id, module_name, int(credits)))
+            db.commit()
+
+            ctk.CTkLabel(self, text="Module added successfully!", text_color="green").pack(pady=10)
+
+            # Return to admin dashboard
+            self.show_admin_dashboard()
+        except Exception as e:
+            print(f"Error adding module: {e}")
+            ctk.CTkLabel(self, text="Error adding module. Please try again.", text_color="red").pack(pady=10)
+        
 
 
     def generate_gpa_reports(self, year):
@@ -405,23 +488,58 @@ class AcademicProbationApp(ctk.CTk):
             result = cursor.fetchone()
 
             if result:
-                report = f"""
-                Student ID: {result[0]}
-                Name: {result[1]}
-                Email: {result[2]}
-                School: {result[3]}
-                Programme: {result[4]}
-                """
-                ctk.CTkLabel(self, text=report, text_color="black", wraplength=500).pack(pady=20)
+                # Fetch GPA values
+                gpa1 = self.get_student_gpa(student_id, 1)
+                gpa2 = self.get_student_gpa(student_id, 2)
+                cumulative_gpa = self.get_cumulative_gpa(student_id, "2023/2024")
 
-                # Add a button to go back to the home screen
-                home_button = ctk.CTkButton(report_frame, text="Back to Home", command=self.show_home_screen)
-                home_button.pack(pady=20)
+                # Format GPA values to two decimal places
+                gpa1_formatted = f"{gpa1:.2f}"
+                gpa2_formatted = f"{gpa2:.2f}"
+                cumulative_gpa_formatted = f"{cumulative_gpa:.2f}"
+
+                # Clear existing widgets
+                for widget in self.winfo_children():
+                    widget.destroy()
+
+                # Create the styled report text
+                report = (
+                    f"Student ID: {result[0]}\n"
+                    f"Name: {result[1]}\n"
+                    f"Email: {result[2]}\n"
+                    f"School: {result[3]}\n"
+                    f"Programme: {result[4]}\n"
+                    f"GPA Semester 1: {gpa1_formatted}\n"
+                    f"GPA Semester 2: {gpa2_formatted}\n"
+                    f"Cumulative GPA: {cumulative_gpa_formatted}"
+                )
+
+                # Display the report with larger text and white color
+                ctk.CTkLabel(
+                    self,
+                    text=report,
+                    text_color="white",  # Set text color to white
+                    font=("Arial", 32),  # Double the default font size
+                    wraplength=800  # Ensure text wraps nicely within the window
+                ).pack(pady=20)
+
+                # Add a back button to return to the Generate Report screen
+                back_button = ctk.CTkButton(self, text="Back", command=self.generate_report)
+                back_button.pack(pady=20)
             else:
-                ctk.CTkLabel(self, text="Student not found.", text_color="red").pack(pady=10)
+                # Display error message if student is not found
+                ctk.CTkLabel(self, text="Student not found.", text_color="red", font=("Arial", 24)).pack(pady=10)
+
+                # Back button to return to Generate Report screen
+                back_button = ctk.CTkButton(self, text="Back", command=self.generate_report)
+                back_button.pack(pady=20)
         except Exception as e:
             print(f"Error: {e}")
-            ctk.CTkLabel(self, text="Error generating report.", text_color="red").pack(pady=10)
+            ctk.CTkLabel(self, text="Error generating report.", text_color="red", font=("Arial", 24)).pack(pady=10)
+
+            # Back button to return to Generate Report screen
+            back_button = ctk.CTkButton(self, text="Back", command=self.generate_report)
+            back_button.pack(pady=20)
 
     def send_alerts(self):
         """Send alerts to students whose cumulative GPA is below the threshold."""
@@ -504,7 +622,6 @@ class AcademicProbationApp(ctk.CTk):
         # Back button
         back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
         back_button.pack(pady=10)
-
         
     def add_student_to_db(self, student_id, name, email, school, programme):
         """Add a new student to the database."""
@@ -523,13 +640,19 @@ class AcademicProbationApp(ctk.CTk):
             db.commit()
             ctk.CTkLabel(self, text="Student added successfully!", text_color="green").pack(pady=10)
 
+            # Create user for the student
+            self.create_user_for_new_student(student_id, email)
+
             # Return to admin dashboard
             self.show_admin_dashboard()
         except Exception as e:
             print(f"Error adding student: {e}")
             ctk.CTkLabel(self, text="Error adding student. Please try again.", text_color="red").pack(pady=10)
             
+    from db_connection import cursor, db
 
+    
+        
         
     def show_student_dashboard(self, student_id):
         """Display the Student Dashboard."""
@@ -562,20 +685,42 @@ class AcademicProbationApp(ctk.CTk):
 
     def display_student_gpa_report(self, student_id):
         """Display the GPA report for the student."""
-        self.populate_prolog_from_db()  # Ensure Prolog facts are updated
+        self.populate_prolog_from_db(student_id=student_id)  # Ensure Prolog facts are updated
 
+        # Fetch GPA values
         gpa1 = self.get_student_gpa(student_id, 1)
         gpa2 = self.get_student_gpa(student_id, 2)
         cumulative_gpa = self.get_cumulative_gpa(student_id, "2023/2024")
 
+        # Format GPA values to two decimal places
+        gpa1_formatted = f"{gpa1:.2f}"
+        gpa2_formatted = f"{gpa2:.2f}"
+        cumulative_gpa_formatted = f"{cumulative_gpa:.2f}"
+
+        # Create the report text
         report = (
             f"Student ID: {student_id}\n"
-            f"GPA Semester 1: {gpa1}\n"
-            f"GPA Semester 2: {gpa2}\n"
-            f"Cumulative GPA: {cumulative_gpa}"
+            f"GPA Semester 1: {gpa1_formatted}\n"
+            f"GPA Semester 2: {gpa2_formatted}\n"
+            f"Cumulative GPA: {cumulative_gpa_formatted}"
         )
-        # Display the report
-        ctk.CTkLabel(self, text=report, text_color="black", wraplength=500).pack(pady=20)
+
+        # Clear existing widgets
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        # Display the report with larger text and white color
+        ctk.CTkLabel(
+            self, 
+            text=report, 
+            text_color="white",  # Set text color to white
+            font=("Arial", 32),  # Double the default font size
+            wraplength=800  # Ensure text wraps nicely within the window
+        ).pack(pady=20)
+
+        # Add a back button that passes the `student_id`
+        back_button = ctk.CTkButton(self, text="Back", command=lambda: self.show_student_dashboard(student_id))
+        back_button.pack(pady=20)
 
 
     def check_student_probation(self, student_id):
@@ -738,20 +883,6 @@ class AcademicProbationApp(ctk.CTk):
 
 
 
-        update_button = ctk.CTkButton(
-            button_frame,
-            text="Update",
-            command=lambda: self.update_module_details(
-                module_id_dropdown.get(),  # Module ID
-                year_entry.get(),          # Academic Year
-                semester_entry.get(),      # Semester
-                student_id_dropdown.get(), # Student ID
-                letter_grade_dropdown.get()  # Letter Grade
-            ),
-        )
-        update_button.grid(row=0, column=1, padx=10)
-
-
         delete_button = ctk.CTkButton(
             button_frame, text="Delete",
             command=lambda: self.delete_module_details(module_id_dropdown.get())
@@ -788,9 +919,11 @@ class AcademicProbationApp(ctk.CTk):
             cursor.execute(query, (module_id, year, semester, student_id, letter_grade))
             db.commit()
 
-            # Recalculate GPA
-            self.query_prolog(f"recalculate_gpa({student_id}, '{year}')")
+            self.populate_prolog_from_db(student_id=student_id, academic_year=year, semester=semester)
+            self.query_prolog(f"recalculate_semester_gpa({student_id}, '{year}', {semester})")
+            self.query_prolog(f"recalculate_cumulative_gpa({student_id}, '{year}')")
 
+            
             ctk.CTkLabel(self, text="Module Details successfully added!", text_color="green").pack(pady=10)
         except Exception as e:
             print(f"Error adding module details: {e}")
@@ -808,9 +941,11 @@ class AcademicProbationApp(ctk.CTk):
             cursor.execute(query, (year, semester, letter_grade, module_id, student_id))
             db.commit()
 
-            # Recalculate GPA
-            self.query_prolog(f"recalculate_gpa({student_id}, '{year}')")
+            self.populate_prolog_from_db(student_id=student_id, academic_year=year, semester=semester)
+            self.query_prolog(f"recalculate_semester_gpa({student_id}, '{year}', {semester})")
+            self.query_prolog(f"recalculate_cumulative_gpa({student_id}, '{year}')")
 
+            
             ctk.CTkLabel(self, text="Module Details successfully updated!", text_color="green").pack(pady=10)
         except Exception as e:
             print(f"Error updating module details: {e}")

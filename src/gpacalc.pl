@@ -2,6 +2,8 @@
 :- dynamic student_data/5.
 :- dynamic module_data/3.
 :- dynamic module_details/5.
+:- dynamic semester_gpa/4. % semester_gpa(StudentID, Academic_Year, Semester, GPA).
+
 
 % Defining the default GPA (2.0)
 default_gpa(2.0).
@@ -66,10 +68,18 @@ calculate_cumulative_gpa(StudentID, Academic_Year, CumulativeGPA) :-
         CumulativeGPA is ((GPA1 * Credits1) + (GPA2 * Credits2)) / (Credits1 + Credits2)
     ).
 
-recalculate_gpa(StudentID, Academic_Year) :-
-    calculate_cumulative_gpa(StudentID, Academic_Year, NewGPA),
-    retractall(student_gpa(StudentID, _)),
-    assert(student_gpa(StudentID, NewGPA)).
+% Recalculate GPA for a specific semester
+recalculate_semester_gpa(StudentID, Academic_Year, Semester) :-
+    calculate_gpa(StudentID, Academic_Year, Semester, GPA),
+    retractall(semester_gpa(StudentID, Academic_Year, Semester, _)),  % Only retract for the given semester
+    assertz(semester_gpa(StudentID, Academic_Year, Semester, GPA)).  % Add updated GPA fact
+
+% Recalculate cumulative GPA
+recalculate_cumulative_gpa(StudentID, Academic_Year) :-
+    calculate_cumulative_gpa(StudentID, Academic_Year, NewCumulativeGPA),
+    retractall(student_gpa(StudentID, Academic_Year, _)),
+    assert(student_gpa(StudentID, Academic_Year, NewCumulativeGPA)).
+
 
 
 % Check if a student is on academic probation
