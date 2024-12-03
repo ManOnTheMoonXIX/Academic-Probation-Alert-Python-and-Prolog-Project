@@ -377,6 +377,35 @@ class AcademicProbationApp(ctk.CTk):
                     student_id, name, email, school, programme, f"{gpa_sem1:.2f}", f"{gpa_sem2:.2f}", f"{cumulative_gpa:.2f}", probation_status
                 ))
 
+            # Zoom functionality
+            default_font_size = 14
+            current_font_size = default_font_size
+
+            def zoom_in(event=None):
+                nonlocal current_font_size
+                current_font_size += 2
+                update_table_font()
+
+            def zoom_out(event=None):
+                nonlocal current_font_size
+                if current_font_size > 8:  # Minimum font size limit
+                    current_font_size -= 2
+                    update_table_font()
+
+            def update_table_font():
+                style = ttk.Style()
+                style.configure("Treeview", font=("Arial", current_font_size))
+                style.configure("Treeview.Heading", font=("Arial Bold", current_font_size + 2))
+
+            # Bind keyboard shortcuts for zoom
+            self.bind("<Control-plus>", zoom_in)
+            self.bind("<Control-minus>", zoom_out)
+            self.bind("<Control-equal>", zoom_in)  # For "+" key without shift
+
+            # Set initial font
+            update_table_font()
+        
+
             # Back button
             back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
             back_button.pack(pady=20)
@@ -457,6 +486,34 @@ class AcademicProbationApp(ctk.CTk):
                 status_table.insert("", "end", values=(student_id, name, probation_status))
 
             status_table.pack(fill="both", expand=True)
+
+            # Zoom functionality
+            default_font_size = 14
+            current_font_size = default_font_size
+
+            def zoom_in(event=None):
+                nonlocal current_font_size
+                current_font_size += 2
+                update_table_font()
+
+            def zoom_out(event=None):
+                nonlocal current_font_size
+                if current_font_size > 8:  # Minimum font size limit
+                    current_font_size -= 2
+                    update_table_font()
+
+            def update_table_font():
+                style = ttk.Style()
+                style.configure("Treeview", font=("Arial", current_font_size))
+                style.configure("Treeview.Heading", font=("Arial Bold", current_font_size + 2))
+
+            # Bind keyboard shortcuts for zoom
+            self.bind("<Control-plus>", zoom_in)
+            self.bind("<Control-minus>", zoom_out)
+            self.bind("<Control-equal>", zoom_in)  # For "+" key without shift
+
+            # Set initial font
+            update_table_font()
 
             # Back button
             back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
