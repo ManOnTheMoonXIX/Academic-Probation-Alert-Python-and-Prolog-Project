@@ -1,5 +1,8 @@
 import customtkinter as ctk
 from tkinter import ttk
+from PIL import Image, ImageTk
+import threading
+import time
 
 # Initialize customtkinter
 ctk.set_appearance_mode("System")  # Light or Dark mode
@@ -23,6 +26,11 @@ class AcademicProbationApp(ctk.CTk):
         self.query_prolog = query_prolog 
         self.send_email_alert = send_email_alert
 
+        # Load the logo image
+        self.logo_image = Image.open("logo.png")  # Change to your image path
+        self.logo_image = self.logo_image.resize((300, 300), Image.Resampling.LANCZOS)  # Resize if necessary
+        self.logo_photo = ImageTk.PhotoImage(self.logo_image)
+
         # Window settings
         self.title("Academic Probation System")
         self.geometry("1200x800")
@@ -36,9 +44,13 @@ class AcademicProbationApp(ctk.CTk):
         for widget in self.winfo_children():
             widget.destroy()
 
+        # Add logo image at the top-left corner
+        logo_label = ctk.CTkLabel(self, image=self.logo_photo, text=None)
+        logo_label.place(x=520, y=10)     
+
         # Add title
         title_label = ctk.CTkLabel(self, text="Academic Probation System", font=("Arial", 24))
-        title_label.pack(pady=20)
+        title_label.pack(pady=(250, 50))
 
         # Add buttons for Student and Admin login
         student_button = ctk.CTkButton(self, text="Student Login", command=self.show_student_login)
@@ -46,6 +58,12 @@ class AcademicProbationApp(ctk.CTk):
 
         admin_button = ctk.CTkButton(self, text="Admin Login", command=self.show_admin_login)
         admin_button.pack(pady=20)
+
+        title_label = ctk.CTkLabel(self, text="by ScholarSync", font=("Arial", 24))
+        title_label.pack(pady=10)
+
+        subtext_label = ctk.CTkLabel(self, text="Daryn Brown, Briana Taylor, Justin Alder, Marvis Haughton", font=("Arial", 16))  # Smaller font for subtext
+        subtext_label.pack(pady=(0, 50))  # No padding above, 50px padding below
 
     def show_student_login(self):
         """Display the student login screen."""
@@ -181,6 +199,13 @@ class AcademicProbationApp(ctk.CTk):
             command=self.show_add_student_screen
         )
         add_student_button.pack(pady=10)
+
+        # Button to manage module details
+        module_details_button = ctk.CTkButton(
+            self, text="Module Details",
+            command=self.show_module_details_screen
+        )
+        module_details_button.pack(pady=10)
 
         # Log out button
         back_button = ctk.CTkButton(self, text="Log Out", command=self.show_home_screen)
@@ -318,7 +343,7 @@ class AcademicProbationApp(ctk.CTk):
 
         student_id_label = ctk.CTkLabel(self, text="Student ID:")
         student_id_label.pack(pady=10)
-        student_id_entry = ctk.CTkEntry(self)
+        student_id_entry = ctk.CTkEntry(self, width=300)
         student_id_entry.pack(pady=10)
 
         gpa_label = ctk.CTkLabel(self, text="GPA (Optional):")
@@ -358,7 +383,7 @@ class AcademicProbationApp(ctk.CTk):
 
         student_id_label = ctk.CTkLabel(self, text="Student ID:")
         student_id_label.pack(pady=10)
-        student_id_entry = ctk.CTkEntry(self)
+        student_id_entry = ctk.CTkEntry(self, width=300)
         student_id_entry.pack(pady=10)
 
         submit_button = ctk.CTkButton(
@@ -388,6 +413,10 @@ class AcademicProbationApp(ctk.CTk):
                 Programme: {result[4]}
                 """
                 ctk.CTkLabel(self, text=report, text_color="black", wraplength=500).pack(pady=20)
+
+                # Add a button to go back to the home screen
+                home_button = ctk.CTkButton(report_frame, text="Back to Home", command=self.show_home_screen)
+                home_button.pack(pady=20)
             else:
                 ctk.CTkLabel(self, text="Student not found.", text_color="red").pack(pady=10)
         except Exception as e:
@@ -436,27 +465,27 @@ class AcademicProbationApp(ctk.CTk):
         # Input fields for student details
         student_id_label = ctk.CTkLabel(self, text="Student ID:")
         student_id_label.pack(pady=5)
-        student_id_entry = ctk.CTkEntry(self)
+        student_id_entry = ctk.CTkEntry(self, width=300)
         student_id_entry.pack(pady=5)
 
         name_label = ctk.CTkLabel(self, text="Name:")
         name_label.pack(pady=5)
-        name_entry = ctk.CTkEntry(self)
+        name_entry = ctk.CTkEntry(self, width=300)
         name_entry.pack(pady=5)
 
         email_label = ctk.CTkLabel(self, text="Email:")
         email_label.pack(pady=5)
-        email_entry = ctk.CTkEntry(self)
+        email_entry = ctk.CTkEntry(self, width=300)
         email_entry.pack(pady=5)
 
         school_label = ctk.CTkLabel(self, text="School:")
         school_label.pack(pady=5)
-        school_entry = ctk.CTkEntry(self)
+        school_entry = ctk.CTkEntry(self, width=300)
         school_entry.pack(pady=5)
 
         programme_label = ctk.CTkLabel(self, text="Programme:")
         programme_label.pack(pady=5)
-        programme_entry = ctk.CTkEntry(self)
+        programme_entry = ctk.CTkEntry(self, width=300)
         programme_entry.pack(pady=5)
 
         # Submit button
@@ -558,6 +587,246 @@ class AcademicProbationApp(ctk.CTk):
         else:
             ctk.CTkLabel(self, text="You are not on academic probation.", text_color="green").pack(pady=20)
 
+    def get_module_ids(self):
+        """Fetch existing module IDs from the database."""
+        try:
+            query = "SELECT module_id FROM modules"
+            cursor.execute(query)
+            return [str(row[0]) for row in cursor.fetchall()]  # Convert to strings
+        except Exception as e:
+            print(f"Error fetching module IDs: {e}")
+            return []
+
+    def get_student_ids(self):
+        """Fetch existing student IDs from the database."""
+        try:
+            query = "SELECT student_id FROM students"
+            cursor.execute(query)
+            return [str(row[0]) for row in cursor.fetchall()]  # Convert to strings
+        except Exception as e:
+            print(f"Error fetching student IDs: {e}")
+            return []
+
+            
+
+    def show_module_details_screen(self):
+        """Display the screen to manage module details."""
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        title_label = ctk.CTkLabel(self, text="Module Details", font=("Arial", 24))
+        title_label.pack(pady=20)
+
+        # Fetch data for dropdowns
+        module_ids = self.get_module_ids()
+        student_ids = self.get_student_ids()
+        letter_grades = ["A+", "A", "B+", "B", "C+", "C", "D+", "D", "F"]
+
+        # Module ID dropdown
+        module_id_label = ctk.CTkLabel(self, text="Module ID:")
+        module_id_label.pack(pady=5)
+        module_id_dropdown = ctk.CTkComboBox(self, values=module_ids, width=300)  # Now module_ids are strings
+        module_id_dropdown.pack(pady=5)
+
+        # Student ID dropdown
+        student_id_label = ctk.CTkLabel(self, text="Student ID:")
+        student_id_label.pack(pady=5)
+        student_id_dropdown = ctk.CTkComboBox(self, values=student_ids, width=300)  # Now student_ids are strings
+        student_id_dropdown.pack(pady=5)
+
+        # Letter Grade dropdown
+        letter_grade_label = ctk.CTkLabel(self, text="Letter Grade:")
+        letter_grade_label.pack(pady=5)
+        letter_grade_dropdown = ctk.CTkComboBox(self, values=letter_grades, width=300)
+        letter_grade_dropdown.pack(pady=5)
+
+
+        # Input fields for module details
+        # module_id_label = ctk.CTkLabel(self, text="Module ID:")
+        # module_id_label.pack(pady=5)
+        # module_id_entry = ctk.CTkEntry(self, width=300)
+        # module_id_entry.pack(pady=5)
+
+        # Module Name (Editable field)
+        module_name_label = ctk.CTkLabel(self, text="Module Name:")
+        module_name_label.pack(pady=5)
+        module_name_entry = ctk.CTkEntry(self, width=300)
+        module_name_entry.pack(pady=5)
+
+        # Fetch module name dynamically
+        def fetch_module_name(module_id):
+            try:
+                query = "SELECT module_name FROM modules WHERE module_id = %s"
+                cursor.execute(query, (module_id,))
+                result = cursor.fetchone()
+                return result[0] if result else ""
+            except Exception as e:
+                print(f"Error fetching module name: {e}")
+                return "Error"
+
+        # Update module name field in real-time
+        def update_module_name():
+            last_selected_id = None
+            while True:
+                selected_module_id = module_id_dropdown.get()
+                if selected_module_id != last_selected_id:
+                    last_selected_id = selected_module_id
+                    module_name = fetch_module_name(selected_module_id)
+                    if module_name_entry.get() != module_name:
+                        module_name_entry.delete(0, "end")
+                        module_name_entry.insert(0, module_name)
+                time.sleep(0.1)
+
+        # Start thread to monitor module ID selection
+        threading.Thread(target=update_module_name, daemon=True).start()
+
+
+        year_label = ctk.CTkLabel(self, text="Year:")
+        year_label.pack(pady=5)
+        year_entry = ctk.CTkEntry(self, width=300)
+        year_entry.pack(pady=5)
+
+        semester_label = ctk.CTkLabel(self, text="Semester:")
+        semester_label.pack(pady=5)
+        semester_entry = ctk.CTkEntry(self, width=300)
+        semester_entry.pack(pady=5)
+
+        # Grade Points (Editable field)
+        grade_points_label = ctk.CTkLabel(self, text="Grade Points:")
+        grade_points_label.pack(pady=5)
+        grade_points_entry = ctk.CTkEntry(self, width=300)
+        grade_points_entry.pack(pady=5)
+
+        # Mapping from letter grades to grade points
+        grade_to_points = {
+            "A+": 4.3, "A": 4.0, "A-": 3.7,
+            "B+": 3.3, "B": 3.0, "B-": 2.7,
+            "C+": 2.3, "C": 2.0, "C-": 1.7,
+            "D+": 1.3, "D": 1.0, "F": 0.0
+        }
+
+        # Function to update grade points in real time
+        def update_grade_points():
+            while True:
+                selected_grade = letter_grade_dropdown.get()
+                if selected_grade in grade_to_points:
+                    current_points = grade_to_points[selected_grade]
+                    if grade_points_entry.get() != str(current_points):
+                        grade_points_entry.delete(0, "end")
+                        grade_points_entry.insert(0, str(current_points))
+                time.sleep(0.1)  # Small delay to reduce CPU usage
+
+        # Start a thread to monitor and update grade points
+        threading.Thread(target=update_grade_points, daemon=True).start()
+
+        # Buttons for Save, Update, and Delete
+        button_frame = ctk.CTkFrame(self)
+        button_frame.pack(pady=10)
+
+        save_button = ctk.CTkButton(
+            button_frame,
+            text="Save",
+            command=lambda: self.save_module_details(
+                module_id_dropdown.get(),
+                year_entry.get(),
+                semester_entry.get(),
+                student_id_dropdown.get(),
+                letter_grade_dropdown.get()
+            ),
+        )
+        save_button.grid(row=0, column=0, padx=10)
+
+
+
+        update_button = ctk.CTkButton(
+            button_frame,
+            text="Update",
+            command=lambda: self.update_module_details(
+                module_id_dropdown.get(),  # Module ID
+                year_entry.get(),          # Academic Year
+                semester_entry.get(),      # Semester
+                student_id_dropdown.get(), # Student ID
+                letter_grade_dropdown.get()  # Letter Grade
+            ),
+        )
+        update_button.grid(row=0, column=1, padx=10)
+
+
+        delete_button = ctk.CTkButton(
+            button_frame, text="Delete",
+            command=lambda: self.delete_module_details(module_id_dropdown.get())
+        )
+        delete_button.grid(row=0, column=2, padx=10)
+
+        # Back button
+        back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
+        back_button.pack(pady=10)
+
+    def update_module_name(self, module_id, module_name_field):
+        """Fetch and update the module name based on the selected Module ID."""
+        try:
+            query = "SELECT module_name FROM modules WHERE module_id = %s"
+            cursor.execute(query, (module_id,))
+            result = cursor.fetchone()
+
+            if result:
+                module_name_field.configure(text=result[0])  # Update the Module Name field
+                module_name_field.configure(fg_color="gray", text_color="blue")  # White background with blue text
+            else:
+                module_name_field.configure(text="Not Found", fg_color="red", text_color="white")  # Error case
+        except Exception as e:
+            print(f"Error fetching module name: {e}")
+            module_name_field.configure(text="Error", fg_color="red", text_color="white")
+    
+    def save_module_details(self, module_id, year, semester, student_id, letter_grade):
+        """Save new module details to the database."""
+        try:
+            query = """
+            INSERT INTO module_details (module_id, academic_year, semester, student_id, letter_grade)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (module_id, year, semester, student_id, letter_grade))
+            db.commit()
+
+            # Recalculate GPA
+            self.query_prolog(f"recalculate_gpa({student_id}, '{year}')")
+
+            ctk.CTkLabel(self, text="Module Details successfully added!", text_color="green").pack(pady=10)
+        except Exception as e:
+            print(f"Error adding module details: {e}")
+            ctk.CTkLabel(self, text="Error adding module details. Please try again.", text_color="red").pack(pady=10)
+
+            
+    def update_module_details(self, module_id, year, semester, student_id, letter_grade):
+        """Update existing module details in the database."""
+        try:
+            query = """
+            UPDATE module_details
+            SET academic_year = %s, semester = %s, letter_grade = %s
+            WHERE module_id = %s AND student_id = %s
+            """
+            cursor.execute(query, (year, semester, letter_grade, module_id, student_id))
+            db.commit()
+
+            # Recalculate GPA
+            self.query_prolog(f"recalculate_gpa({student_id}, '{year}')")
+
+            ctk.CTkLabel(self, text="Module Details successfully updated!", text_color="green").pack(pady=10)
+        except Exception as e:
+            print(f"Error updating module details: {e}")
+            ctk.CTkLabel(self, text="Error updating module details. Please try again.", text_color="red").pack(pady=10)
+
+
+    def delete_module_details(self, module_id, student_id):
+        """Delete module details from the database."""
+        try:
+            query = "DELETE FROM module_details WHERE module_id = %s AND student_id = %s"
+            cursor.execute(query, (module_id, student_id))
+            db.commit()
+            ctk.CTkLabel(self, text="Module Details successfully deleted!", text_color="green").pack(pady=10)
+        except Exception as e:
+            print(f"Error deleting module details: {e}")
+            ctk.CTkLabel(self, text="Error deleting module details. Please try again.", text_color="red").pack(pady=10)
 
     
 

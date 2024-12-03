@@ -6,7 +6,8 @@ from db_connection import (
     close_connection,
     populate_module_details,
     get_missing_semester_data, 
-    update_semester_data
+    update_semester_data,
+    cursor
 )
 from email.mime.text import MIMEText
 import smtplib
@@ -64,21 +65,33 @@ def populate_prolog_from_db():
         student_id, name, email, school, programme = student
         prolog.assertz(f"student_data({student_id}, '{name}', '{email}', '{school}', '{programme}')")
 
-    # Load modules and module details for both semesters
-    for student in students:
-        student_id = student[0]
+    # Dynamically fetch all academic years and semesters
+    academic_years = get_all_academic_years()  # Fetch distinct academic years from the database
+    for academic_year in academic_years:
+        semesters = get_all_semesters(academic_year)  # Fetch available semesters for the year
 
-        # Load Semester 1 data
-        modules_sem1 = get_module_data(student_id, "2023/2024", 1)  # Adjust academic year and semester
-        for module_id, module_name, letter_grade, credits in modules_sem1:
-            prolog.assertz(f"module_data('{module_id}', '{module_name}', {credits})")
-            prolog.assertz(f"module_details({student_id}, '{module_id}', '2023/2024', 1, '{letter_grade}')")
+        for semester in semesters:
+            # Load module details for each student, year, and semester
+            for student in students:
+                student_id = student[0]
 
-        # Load Semester 2 data
-        modules_sem2 = get_module_data(student_id, "2023/2024", 2)  # Adjust academic year and semester
-        for module_id, module_name, letter_grade, credits in modules_sem2:
-            prolog.assertz(f"module_data('{module_id}', '{module_name}', {credits})")
-            prolog.assertz(f"module_details({student_id}, '{module_id}', '2023/2024', 2, '{letter_grade}')")
+                modules = get_module_data(student_id, academic_year, semester)
+                for module_id, module_name, letter_grade, credits in modules:
+                    # Assert module and module details in Prolog
+                    prolog.assertz(f"module_data('{module_id}', '{module_name}', {credits})")
+                    prolog.assertz(f"module_details({student_id}, '{module_id}', '{academic_year}', {semester}, '{letter_grade}')")
+
+def get_all_academic_years():
+    """Fetch all distinct academic years from the database."""
+    query = "SELECT DISTINCT academic_year FROM module_details"
+    cursor.execute(query)
+    return [row[0] for row in cursor.fetchall()]
+
+def get_all_semesters(academic_year):
+    """Fetch all semesters for a given academic year."""
+    query = "SELECT DISTINCT semester FROM module_details WHERE academic_year = %s"
+    cursor.execute(query, (academic_year,))
+    return [row[0] for row in cursor.fetchall()]
 
 
 def send_email_alert(student_id, name, email, programme, school):

@@ -66,6 +66,12 @@ calculate_cumulative_gpa(StudentID, Academic_Year, CumulativeGPA) :-
         CumulativeGPA is ((GPA1 * Credits1) + (GPA2 * Credits2)) / (Credits1 + Credits2)
     ).
 
+recalculate_gpa(StudentID, Academic_Year) :-
+    calculate_cumulative_gpa(StudentID, Academic_Year, NewGPA),
+    retractall(student_gpa(StudentID, _)),
+    assert(student_gpa(StudentID, NewGPA)).
+
+
 % Check if a student is on academic probation
 on_academic_probation(StudentID) :-
     calculate_cumulative_gpa(StudentID, _, CumulativeGPA),
