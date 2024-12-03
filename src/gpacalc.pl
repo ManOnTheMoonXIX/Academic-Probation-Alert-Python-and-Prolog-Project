@@ -3,6 +3,8 @@
 :- dynamic module_data/3.
 :- dynamic module_details/5.
 :- dynamic semester_gpa/4. % semester_gpa(StudentID, Academic_Year, Semester, GPA).
+:- dynamic on_academic_probation/1.
+:- dynamic default_gpa/1.
 
 
 % Defining the default GPA (2.0)
@@ -88,7 +90,22 @@ on_academic_probation(StudentID) :-
     default_gpa(DefaultGPA),
     CumulativeGPA =< DefaultGPA.
 
-% Update the default GPA threshold
+% Update the default GPA threshold and recalculate probation status for all students
 update_default_gpa(NewGPA) :-
     retract(default_gpa(_)),
-    assert(default_gpa(NewGPA)).
+    assert(default_gpa(NewGPA)),
+    recalculate_all_probation_statuses.
+
+% Recalculate probation status for all students
+recalculate_all_probation_statuses :-
+    findall(StudentID, student_data(StudentID, _, _, _, _), StudentIDs),
+    forall(member(StudentID, StudentIDs), recalculate_probation_status(StudentID)).
+
+% Recalculate probation status for a specific student
+recalculate_probation_status(StudentID) :-
+    calculate_cumulative_gpa(StudentID, _, CumulativeGPA),
+    default_gpa(DefaultGPA),
+    (CumulativeGPA =< DefaultGPA ->
+        assertz(on_academic_probation(StudentID));
+        retractall(on_academic_probation(StudentID))
+    ).

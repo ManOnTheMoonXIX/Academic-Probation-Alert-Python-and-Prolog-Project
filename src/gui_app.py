@@ -408,13 +408,62 @@ class AcademicProbationApp(ctk.CTk):
         back_button.pack(pady=20)
 
     def submit_default_gpa(self, gpa):
-        """Submit the new default GPA to Prolog."""
+        """Submit the new default GPA to Prolog and update probation statuses."""
         try:
+            # Update the default GPA in Prolog
             self.query_prolog(f"update_default_gpa({float(gpa)})")
+            
+            # Clear the screen and display success message
             ctk.CTkLabel(self, text="Default GPA updated successfully!", text_color="green").pack(pady=20)
+
+            # Optionally, display updated probation statuses
+            self.show_updated_probation_statuses()
         except Exception as e:
             print(f"Error: {e}")
             ctk.CTkLabel(self, text="Error updating default GPA.", text_color="red").pack(pady=20)
+
+    def show_updated_probation_statuses(self):
+        """Display updated probation statuses for all students."""
+        try:
+            students = self.query_prolog("student_data(StudentID, Name, _, _, _)")
+            if not students:
+                raise Exception("No students found in the database.")
+            
+            # Clear the screen
+            for widget in self.winfo_children():
+                widget.destroy()
+            
+            # Add title
+            title_label = ctk.CTkLabel(self, text="Updated Probation Statuses", font=("Arial", 24))
+            title_label.pack(pady=20)
+            
+            # Display statuses in a table
+            table_frame = ctk.CTkFrame(self)
+            table_frame.pack(pady=10, padx=10, fill="both", expand=True)
+
+            columns = ("Student ID", "Name", "Probation Status")
+            status_table = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+            # Set up column headings
+            for col in columns:
+                status_table.heading(col, text=col)
+                status_table.column(col, anchor="center", width=200)
+
+            # Add probation status for each student
+            for student in students:
+                student_id = student["StudentID"]
+                name = student["Name"]
+                probation_status = "Yes" if self.query_prolog(f"on_academic_probation({student_id})") else "No"
+                status_table.insert("", "end", values=(student_id, name, probation_status))
+
+            status_table.pack(fill="both", expand=True)
+
+            # Back button
+            back_button = ctk.CTkButton(self, text="Back", command=self.show_admin_dashboard)
+            back_button.pack(pady=20)
+        except Exception as e:
+            print(f"Error displaying probation statuses: {e}")
+            ctk.CTkLabel(self, text="Error displaying updated statuses.", text_color="red").pack(pady=20)
 
     def record_gpa(self):
         """Screen to record/update GPA."""
