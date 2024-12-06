@@ -2,6 +2,10 @@
 :- dynamic student_data/5.
 :- dynamic module_data/3.
 :- dynamic module_details/5.
+:- dynamic semester_gpa/4. % semester_gpa(StudentID, Academic_Year, Semester, GPA).
+:- dynamic on_academic_probation/1.
+:- dynamic default_gpa/1.
+
 
 % Defining the default GPA (2.0)
 default_gpa(2.0).
@@ -66,13 +70,42 @@ calculate_cumulative_gpa(StudentID, Academic_Year, CumulativeGPA) :-
         CumulativeGPA is ((GPA1 * Credits1) + (GPA2 * Credits2)) / (Credits1 + Credits2)
     ).
 
+% Recalculate GPA for a specific semester
+recalculate_semester_gpa(StudentID, Academic_Year, Semester) :-
+    calculate_gpa(StudentID, Academic_Year, Semester, GPA),
+    retractall(semester_gpa(StudentID, Academic_Year, Semester, _)),  % Only retract for the given semester
+    assertz(semester_gpa(StudentID, Academic_Year, Semester, GPA)).  % Add updated GPA fact
+
+% Recalculate cumulative GPA
+recalculate_cumulative_gpa(StudentID, Academic_Year) :-
+    calculate_cumulative_gpa(StudentID, Academic_Year, NewCumulativeGPA),
+    retractall(student_gpa(StudentID, Academic_Year, _)),
+    assert(student_gpa(StudentID, Academic_Year, NewCumulativeGPA)).
+
+
+
 % Check if a student is on academic probation
 on_academic_probation(StudentID) :-
     calculate_cumulative_gpa(StudentID, _, CumulativeGPA),
     default_gpa(DefaultGPA),
     CumulativeGPA =< DefaultGPA.
 
-% Update the default GPA threshold
+% Update the default GPA threshold and recalculate probation status for all students
 update_default_gpa(NewGPA) :-
     retract(default_gpa(_)),
-    assert(default_gpa(NewGPA)).
+    assert(default_gpa(NewGPA)),
+    recalculate_all_probation_statuses.
+
+% Recalculate probation status for all students
+recalculate_all_probation_statuses :-
+    findall(StudentID, student_data(StudentID, _, _, _, _), StudentIDs),
+    forall(member(StudentID, StudentIDs), recalculate_probation_status(StudentID)).
+
+% Recalculate probation status for a specific student
+recalculate_probation_status(StudentID) :-
+    calculate_cumulative_gpa(StudentID, _, CumulativeGPA),
+    default_gpa(DefaultGPA),
+    (CumulativeGPA =< DefaultGPA ->
+        assertz(on_academic_probation(StudentID));
+        retractall(on_academic_probation(StudentID))
+    ).

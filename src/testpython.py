@@ -6,7 +6,8 @@ from db_connection import (
     close_connection,
     populate_module_details,
     get_missing_semester_data, 
-    update_semester_data
+    update_semester_data,
+    cursor
 )
 from email.mime.text import MIMEText
 import smtplib
@@ -25,13 +26,24 @@ def query_prolog(query_str):
 
 def get_student_gpa(student_id, semester):
     """Retrieve the GPA of a student for a specific semester."""
-    result = query_prolog(f"calculate_gpa({student_id}, '2023/2024', {semester}, GPA)")
-    return result[0]['GPA'] if result else 0
+    try:
+        # Query Prolog for the specific semester's GPA
+        result = query_prolog(f"calculate_gpa({student_id}, '2023/2024', {semester}, GPA)")
+        return float(result[0]['GPA']) if result and 'GPA' in result[0] else 0.0
+    except Exception as e:
+        print(f"Error retrieving GPA for student {student_id}, semester {semester}: {e}")
+        return 0.0
 
 def get_cumulative_gpa(student_id, year):
     """Retrieve the cumulative GPA of a student for the given year."""
-    result = query_prolog(f"calculate_cumulative_gpa({student_id}, '{year}', CumulativeGPA)")
-    return result[0]['CumulativeGPA'] if result else 0
+    try:
+        # Query Prolog for cumulative GPA
+        result = query_prolog(f"calculate_cumulative_gpa({student_id}, '{year}', CumulativeGPA)")
+        return float(result[0]['CumulativeGPA']) if result and 'CumulativeGPA' in result[0] else 0.0
+    except Exception as e:
+        print(f"Error retrieving cumulative GPA for student {student_id}, year {year}: {e}")
+        return 0.0
+
 
 def is_on_academic_probation(student_id):
     """Check if a student is on academic probation."""
@@ -51,37 +63,62 @@ def ensure_semester_data():
         # Update the database with the missing semester value
         update_semester_data(record_id, semester)
 
-def populate_prolog_from_db():
-    """Populate Prolog facts dynamically from the MySQL database."""
-    # Clear existing Prolog facts to avoid duplication
-    prolog.retractall("student_data(_, _, _, _, _)")
-    prolog.retractall("module_data(_, _, _)")
-    prolog.retractall("module_details(_, _, _, _, _)")
+def populate_prolog_from_db(student_id=None, academic_year=None, semester=None):
+    """Populate Prolog facts dynamically for specific scope or all data."""
+    if student_id and academic_year and semester:
+        # Clear only specific module details and semester GPA for the given scope
+        prolog.retractall(f"module_details({student_id}, _, '{academic_year}', {semester}, _)")
+        prolog.retractall(f"semester_gpa({student_id}, '{academic_year}', {semester}, _)")
+    elif student_id and academic_year:
+        # Clear all semester details for the given student and academic year
+        prolog.retractall(f"module_details({student_id}, _, '{academic_year}', _, _)")
+        prolog.retractall(f"semester_gpa({student_id}, '{academic_year}', _, _)")
+        prolog.retractall(f"student_gpa({student_id}, '{academic_year}', _)")
+    else:
+        # Clear all facts only if no specific scope is provided (fallback)
+        prolog.retractall("student_data(_, _, _, _, _)")
+        prolog.retractall("module_data(_, _, _)")
+        prolog.retractall("module_details(_, _, _, _, _)")
+        prolog.retractall("semester_gpa(_, _, _, _)")
+        prolog.retractall("student_gpa(_, _, _)")
 
     # Load students
     students = get_student_data()
     for student in students:
-        student_id, name, email, school, programme = student
-        prolog.assertz(f"student_data({student_id}, '{name}', '{email}', '{school}', '{programme}')")
+        s_id, name, email, school, programme = student
+        if not student_id or s_id == student_id:  # Populate all or specific student
+            prolog.assertz(f"student_data({s_id}, '{name}', '{email}', '{school}', '{programme}')")
 
-    # Load modules and module details for both semesters
-    for student in students:
-        student_id = student[0]
+    # Dynamically fetch all academic years and semesters
+    academic_years = get_all_academic_years() if not academic_year else [academic_year]
+    for year in academic_years:
+        semesters = get_all_semesters(year) if not semester else [semester]
 
-        # Load Semester 1 data
-        modules_sem1 = get_module_data(student_id, "2023/2024", 1)  # Adjust academic year and semester
-        for module_id, module_name, letter_grade, credits in modules_sem1:
-            prolog.assertz(f"module_data('{module_id}', '{module_name}', {credits})")
-            prolog.assertz(f"module_details({student_id}, '{module_id}', '2023/2024', 1, '{letter_grade}')")
+        for sem in semesters:
+            # Load module details for each student, year, and semester
+            for student in students:
+                s_id = student[0]
+                if not student_id or s_id == student_id:
+                    modules = get_module_data(s_id, year, sem)
+                    for module_id, module_name, letter_grade, credits in modules:
+                        # Assert module and module details in Prolog
+                        prolog.assertz(f"module_data('{module_id}', '{module_name}', {credits})")
+                        prolog.assertz(f"module_details({s_id}, '{module_id}', '{year}', {sem}, '{letter_grade}')")
 
-        # Load Semester 2 data
-        modules_sem2 = get_module_data(student_id, "2023/2024", 2)  # Adjust academic year and semester
-        for module_id, module_name, letter_grade, credits in modules_sem2:
-            prolog.assertz(f"module_data('{module_id}', '{module_name}', {credits})")
-            prolog.assertz(f"module_details({student_id}, '{module_id}', '2023/2024', 2, '{letter_grade}')")
+def get_all_academic_years():
+    """Fetch all distinct academic years from the database."""
+    query = "SELECT DISTINCT academic_year FROM module_details"
+    cursor.execute(query)
+    return [row[0] for row in cursor.fetchall()]
+
+def get_all_semesters(academic_year):
+    """Fetch all semesters for a given academic year."""
+    query = "SELECT DISTINCT semester FROM module_details WHERE academic_year = %s"
+    cursor.execute(query, (academic_year,))
+    return [row[0] for row in cursor.fetchall()]
 
 
-def send_email_alert(student_id, name, email, programme, school="School of Engineering"):
+def send_email_alert(student_id, name, email, programme, school):
     """Send academic probation alert emails to multiple stakeholders."""
     subject = "Academic Probation Alert"
     body = (
@@ -98,19 +135,18 @@ def send_email_alert(student_id, name, email, programme, school="School of Engin
     # Add recipients
     recipients = [
         email,  # Student email
-        "advisor@university.com",
-        "director@university.com"
-        "admin@university.com"
+        "darynnbrown@gmail.com",
+        "enchantoalder@gmail.com"
     ]
     msg["To"] = ", ".join(recipients)
 
     try:
-        with smtplib.SMTP("smtp.gmail.com", 2525, timeout=30) as server:  # Adjust SMTP settings as needed
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:  # Adjust SMTP settings as needed
             server.login("enchantoalder@gmail.com", "rpjg lslg nawi hlze")  # Replace with real credentials
             server.sendmail(msg["From"], recipients, msg.as_string())
         print(f"Email alert sent to {email} and other stakeholders.")
     except Exception as e:
-        print(f"Error sending email alert for {name} (ID: {student_id}): {e}")
+        print(f"Error sending email alert for {name} (ID: {student_id}): {e}")
 
 def generate_reports(year):
     """Generate GPA reports and send alerts for students on academic probation."""
@@ -160,6 +196,8 @@ if __name__ == "__main__":
         get_student_gpa=get_student_gpa,
         get_cumulative_gpa=get_cumulative_gpa,
         is_on_academic_probation=is_on_academic_probation,
-        populate_prolog_from_db=populate_prolog_from_db
+        populate_prolog_from_db=populate_prolog_from_db,
+        query_prolog=query_prolog,
+        send_email_alert=send_email_alert,
     )
     app.mainloop()
