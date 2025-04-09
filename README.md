@@ -39,13 +39,10 @@ The Academic Probation Alert System is a hybrid application built with Python an
 - Run the SQL scripts provided in the code (e.g., table creation and seed data) to initialize the schema and populate sample data.
 
    Example commands in MySQL:
-   
-      ```
+  
       CREATE DATABASE Academic_Probation;
       USE Academic_Probation;
       -- Paste and run the CREATE TABLE and INSERT statements from the code
-      ```
-
 
 4. Configure the database connection:
 - Update `db_connection.py` with your MySQL credentials (host, user, password, database).
@@ -67,10 +64,8 @@ The Academic Probation Alert System is a hybrid application built with Python an
 
    Example:
    
-      ```
       server.login("your_email@gmail.com", "your_app_password")
-      ```
-
+    
 6. Ensure Prolog is installed and the `gpacalc.pl` file is in the project directory.
 
 ## Running The Application
@@ -113,10 +108,8 @@ The system uses Prolog for GPA calculations and probation checks:
 
    Example Prolog queries:
       
-      ```
       calculate_gpa(1234567, '2023/2024', 1, GPA).
       on_academic_probation(1234567).
-      ```
 
 ## Project Structure
 
