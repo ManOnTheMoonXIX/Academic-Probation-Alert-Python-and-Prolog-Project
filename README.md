@@ -12,7 +12,7 @@ The Academic Probation Alert System is a hybrid application built with Python an
 
 ## Getting Started
 
-### Prerequisites
+### **Prerequisites**
 
 - Python 3.7+
 - MySQL Server (e.g., MySQL Community Server)
@@ -38,42 +38,42 @@ The Academic Probation Alert System is a hybrid application built with Python an
 - Create a database named `Academic_Probation`.
 - Run the SQL scripts provided in the code (e.g., table creation and seed data) to initialize the schema and populate sample data.
 
-Example commands in MySQL:
-
-   ```
-   CREATE DATABASE Academic_Probation;
-   USE Academic_Probation;
-   -- Paste and run the CREATE TABLE and INSERT statements from the code
-   ```
+   Example commands in MySQL:
+   
+      ```
+      CREATE DATABASE Academic_Probation;
+      USE Academic_Probation;
+      -- Paste and run the CREATE TABLE and INSERT statements from the code
+      ```
 
 
 4. Configure the database connection:
 - Update `db_connection.py` with your MySQL credentials (host, user, password, database).
 
-Example:
-
-  ```
-  python
-  db = mysql.connector.connect(
-      host="localhost",
-      user="your_username",
-      password="your_password",
-      database="Academic_Probation"
-  )
-  ```
+   Example:
+   
+     ```
+     python
+     db = mysql.connector.connect(
+         host="localhost",
+         user="your_username",
+         password="your_password",
+         database="Academic_Probation"
+     )
+     ```
 
 5. Set up email credentials:
 - Update testpython.py with your SMTP email credentials for sending alerts.
 
-Example:
-
-   ```
-   server.login("your_email@gmail.com", "your_app_password")
-   ```
+   Example:
+   
+      ```
+      server.login("your_email@gmail.com", "your_app_password")
+      ```
 
 6. Ensure Prolog is installed and the gpacalc.pl file is in the project directory.
 
-###Running The Application
+### Running The Application
 
 1. Start the application:
    
